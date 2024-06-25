@@ -1,12 +1,8 @@
 -- main module file
 local module = require("ogpt.module")
 local config = require("ogpt.config")
-local conf = require("telescope.config").values
 local signs = require("ogpt.signs")
-local pickers = require("telescope.pickers")
-local Config = require("ogpt.config")
-local action_state = require("telescope.actions.state")
-local actions = require("telescope.actions")
+local TelescopePicker = require("ogpt.common.telescope_picker")
 
 local M = {}
 
@@ -29,51 +25,20 @@ M.setup = function(options)
   signs.setup()
 end
 
---- select Action
-local finder = function(action_definitions)
-  return setmetatable({
-    close = function() end,
-  }, {
-    __call = function(_, prompt, process_result, process_complete)
-      for key, action_opts in pairs(action_definitions) do
-        process_result({
-          value = key,
-          display = key,
-          ordinal = key,
-        })
-      end
-      process_complete()
-    end,
-  })
-end
-
 function M.select_action(opts)
   opts = opts or {}
 
   local ActionFlow = require("ogpt.flows.actions")
   local action_definitions = ActionFlow.read_actions()
-  pickers
-    .new(opts, {
-      sorting_strategy = "ascending",
-      layout_config = {
-        height = 0.5,
-      },
-      results_title = "Select Ollama action",
-      prompt_prefix = Config.options.input_window.prompt,
-      selection_caret = Config.options.chat.answer_sign .. " ",
-      prompt_title = "actions",
-      finder = finder(action_definitions),
-      sorter = conf.generic_sorter(),
-      attach_mappings = function(prompt_bufnr)
-        actions.select_default:replace(function()
-          actions.close(prompt_bufnr)
-          local selection = action_state.get_selected_entry()
-          opts.cb(selection.display, selection.value)
-        end)
-        return true
-      end,
-    })
-    :find()
+  local title = "Actions"
+
+  vim.ui.select(
+    vim.tbl_keys(action_definitions),
+    { prompt = title, telescope = TelescopePicker:new(title, "Select Ollama action") },
+    function(item)
+      opts.cb(item, item)
+    end
+  )
 end
 
 --
@@ -99,7 +64,7 @@ end
 M.run_action = function(opts)
   if opts.args == "" then
     M.select_action({
-      cb = function(key, value)
+      cb = function(key, _)
         local _opts = vim.tbl_extend("force", opts, {
           args = key,
           fargs = {

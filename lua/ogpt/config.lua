@@ -423,12 +423,15 @@ function M.get_provider(provider_name, action, override)
   local Api = require("ogpt.api")
   override = override or {}
   provider_name = provider_name or M.options.default_provider
-  local provider = require("ogpt.provider." .. provider_name)(override)
-  provider:load_envs(override.envs)
-  -- provider = vim.tbl_extend("force", provider, override)
-  -- provider.envs = envs
-  provider.api = Api(provider, action, {})
-  return provider
+  if provider_name == nil then
+  else
+    local provider = require("ogpt.provider." .. provider_name)(override)
+    provider:load_envs(override.envs)
+    -- provider = vim.tbl_extend("force", provider, override)
+    -- provider.envs = envs
+    provider.api = Api(provider, action, {})
+    return provider
+  end
 end
 
 function M.get_action_params(provider, override)
